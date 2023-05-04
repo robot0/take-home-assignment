@@ -86,7 +86,6 @@ function App() {
 	const totalRevenueShare = calculateTotalRevenueShare(fundingAmount, feesData.fees);
 
 	// Expected Transfers Logic
-
 	const calculateExpectedTransfers = (
 		totalRevenueShare: number,
 		revenueAmount: number,
