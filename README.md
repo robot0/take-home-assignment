@@ -1,46 +1,45 @@
-# Getting Started with Create React App
+# Financial Web Application: Loan Calculator
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This is a financial web application built using React, TypeScript, and Tailwind CSS. It allows users to calculate various loan parameters based on their business revenue, desired loan amount, repayment rate, and other factors.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- Calculate the desired loan amount based on annual business revenue
+- Choose from various repayment delay options (30 days, 60 days, or 90 days)
+- Calculate the repayment rate based on a custom formula
+- Select repayment frequency (monthly or weekly)
+- Specify the use of funds (marketing, personnel, working capital, inventory, machinery/equipment, or other)
+- Set minimum and maximum limits for funding amount and revenue percentage
 
-### `npm start`
+## Getting Started
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Follow these steps to get the project up and running on your local machine.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+### Prerequisites
 
-### `npm test`
+- [Node.js](https://nodejs.org/) (version 12 or later)
+- [npm](https://www.npmjs.com/) (usually comes with Node.js) or [Yarn](https://yarnpkg.com/)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Installation
 
-### `npm run build`
+1. Clone the repository:
+`git clone https://github.com/robot0/take-home-assignment`
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+2. Navigate to the project directory:
+`cd take-home-assignment`
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+3. Install the required dependencies:
+`npm install`
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+4. Start the development server:
+`npm start`
+or
+`yarn start`
 
-### `npm run eject`
+5. Open your browser and navigate to <http://localhost:3000> to view the application.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## Built With
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+- React - A JavaScript library for building user interfaces
+- TypeScript - A typed superset of JavaScript that adds static types
+- Tailwind CSS - A utility-first CSS framework for rapid UI development
