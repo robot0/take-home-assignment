@@ -118,9 +118,24 @@ function App() {
 		(item) => item.name === "revenue_percentage_max",
 	)?.value;
 
+	// Calculating the Revenue Percentage Logic
+	const calculatePercentage = (revenueAmount: number, fundingAmount: number) => {
+		const formula = revenuePercentageFromConfig;
+
+		if (!formula) {
+			return 0;
+		}
+
+		// eslint-disable-next-line
+		const percentage = new Function("revenue_amount", "funding_amount", `return ${formula}`);
+		return percentage(revenueAmount, fundingAmount);
+	};
+
 	// Add a new state variable for revenue percentage
 	// eslint-disable-next-line
-	const [revenuePercentage, setRevenuePercentage] = useState(revenuePercentageFromConfig);
+	const [revenuePercentage, setRevenuePercentage] = useState(
+		calculatePercentage(revenueAmount, fundingAmount),
+	);
 
 	// Desired Fee Percentage logic
 	const desiredFeePercentageFromConfig = config.find(
@@ -308,7 +323,9 @@ function App() {
 										Revenue Share Percentage:
 									</label>
 									<div className="mb-4">
-										<PercentageStat revenueAmount={revenueAmount} fundingAmount={fundingAmount} />
+										<PercentageStat
+											percentage={calculatePercentage(revenueAmount, fundingAmount)}
+										/>
 									</div>
 								</div>
 
