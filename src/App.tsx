@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import InputBox from "./components/InputBox";
 import RangeSlider from "./components/RangeSlider";
 import ComboBoxComponent from "./components/ComboBox";
@@ -6,27 +7,59 @@ import CheckBox from "./components/CheckBox";
 import PercentageStat from "./components/PercentageStat";
 import FundUsesList from "./components/FundUsesList";
 
-// Options for Funds Use
-const fundUseOptions = [
-	{ id: 1, name: "Marketing" },
-	{ id: 2, name: "Personnel" },
-	{ id: 3, name: "Working Capital" },
-	{ id: 4, name: "Inventory" },
-	{ id: 5, name: "Machinery/Equipment" },
-	{ id: 6, name: "Other" },
-];
-
-// Options for Repayment Delays
-const delayOptions = [
-	{ id: 1, name: "30 days" },
-	{ id: 2, name: "60 days" },
-	{ id: 3, name: "90 days" },
-];
-
 function App() {
+	// Config state variable
+	const [config, setConfig] = useState<any[]>([]);
+
+	// Function to fetch JSON configuration
+	const fetchConfig = async () => {
+		try {
+			const response = await axios.get(
+				"https://raw.githubusercontent.com/Ned-Helps/demo-repository/main/config.json",
+			);
+			setConfig(response.data);
+		} catch (error) {
+			console.error("Error fetching config: ", error);
+		}
+	};
+
+	// Call fetchConfig on component mount
+	useEffect(() => {
+		fetchConfig();
+	}, []);
+
+	// Options for Fund Uses
+	const fundUseOptions = config
+		.filter((item) => item.name === "use_of_funds")
+		.map((item) =>
+			item.value
+				.split("*")
+				.map((option: string, index: number) => ({ id: index + 1, name: option })),
+		)
+		.flat();
+
+	// Funding Amount (Min/Max)
+	const fundingAmountMin =
+		config.find((item) => item.name === "funding_amount_min")?.value || 25000;
+	const fundingAmountMax =
+		config.find((item) => item.name === "funding_amount_max")?.value || 750000;
+
+	// Revenue Amount and Funding Amount
+	const defaultFundingAmount =
+		config.find((item) => item.name === "funding_amount")?.value || 60000;
+	const defaultRevenueAmount =
+		config.find((item) => item.name === "revenue_amount")?.value || 250000;
+
 	// Revenue Shared Frequency Logic
-	const [monthlyCheckBoxValue, setMonthlyCheckBoxValue] = useState(false);
-	const [weeklyCheckBoxValue, setWeeklyCheckBoxValue] = useState(false);
+	const revenueSharedFrequencyFromConfig =
+		config.find((item) => item.name === "revenue_shared_frequency")?.value || "monthly";
+
+	const [monthlyCheckBoxValue, setMonthlyCheckBoxValue] = useState(
+		revenueSharedFrequencyFromConfig === "monthly",
+	);
+	const [weeklyCheckBoxValue, setWeeklyCheckBoxValue] = useState(
+		revenueSharedFrequencyFromConfig === "weekly",
+	);
 
 	const handleMonthlyCheckBoxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setMonthlyCheckBoxValue(e.target.checked);
@@ -39,44 +72,73 @@ function App() {
 	};
 
 	// Desired Payment Delays Logic
-	const [selectedDelayOption, setSelectedDelayOption] = useState(delayOptions[0]?.id || 0);
+	const delayOptions = config
+		.filter((item) => item.name === "desired_repayment_delay")
+		.map((item) =>
+			item.value
+				.split("*")
+				.map((option: string, index: number) => ({ id: index + 1, name: option })),
+		)
+		.flat();
+
+	const desiredRepaymentDelayFromConfig =
+		config.find((item) => item.name === "desired_repayment_delay")?.value || delayOptions[0]?.id;
+
+	const [selectedDelayOption, setSelectedDelayOption] = useState(desiredRepaymentDelayFromConfig);
 
 	const handleDelayChange = (selectedValue: any) => {
 		setSelectedDelayOption(selectedValue);
 	};
 
 	// Funding Amount Logic
-	const [revenueAmount, setRevenueAmount] = useState(250000);
-	const [fundingAmount, setFundingAmount] = useState(revenueAmount / 3);
-
-	useEffect(() => {
-		if (revenueAmount === 250000) {
-			setFundingAmount(60000);
-		} else {
-			setFundingAmount(revenueAmount / 3);
-		}
-	}, [revenueAmount]);
+	const [revenueAmount, setRevenueAmount] = useState(defaultRevenueAmount);
+	const [fundingAmount, setFundingAmount] = useState(defaultFundingAmount);
 
 	// InputBox logic
 	const handleRevenueAmount = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setRevenueAmount(parseFloat(e.target.value));
 	};
 
+	// Revenue Percentage logic
+	const revenuePercentageFromConfig = config.find(
+		(item) => item.name === "revenue_percentage",
+	)?.value;
+	const revenuePercentageMinFromConfig = config.find(
+		(item) => item.name === "revenue_percentage_min",
+	)?.value;
+	const revenuePercentageMaxFromConfig = config.find(
+		(item) => item.name === "revenue_percentage_max",
+	)?.value;
+
+	// Add a new state variable for revenue percentage
+	// eslint-disable-next-line
+	const [revenuePercentage, setRevenuePercentage] = useState(revenuePercentageFromConfig);
+
+	// Desired Fee Percentage logic
+	const desiredFeePercentageFromConfig = config.find(
+		(item) => item.name === "desired_fee_percentage",
+	)?.value;
+
+	// Calculate fees
+	const calculateFees = (fundingAmount: number, desiredFeePercentageFromConfig: number) => {
+		const fees = fundingAmount * desiredFeePercentageFromConfig;
+		return { percentage: desiredFeePercentageFromConfig * 100, fees };
+	};
+
+	const feesData = calculateFees(fundingAmount, desiredFeePercentageFromConfig);
+
 	// Range Slider logic
 	const handleSliderChange = (value: number) => {
 		setFundingAmount(value);
+		const newPercentage = value / revenueAmount;
+		if (
+			newPercentage >= revenuePercentageMinFromConfig &&
+			newPercentage <= revenuePercentageMaxFromConfig
+		) {
+			setRevenuePercentage(newPercentage);
+		}
+		console.log(desiredFeePercentageFromConfig);
 	};
-
-	// Fee Percentage logic
-	// eslint-disable-next-line
-	const [desiredFeePercentage, setDesiredFeePercentage] = useState(0.5);
-
-	const calculateFees = (fundingAmount: number, desiredFeePercentage: number) => {
-		const fees = fundingAmount * desiredFeePercentage;
-		return { percentage: desiredFeePercentage * 100, fees };
-	};
-
-	const feesData = calculateFees(fundingAmount, desiredFeePercentage);
 
 	// Total Revenue Share Logic
 	const calculateTotalRevenueShare = (fundingAmount: number, fees: number) => {
@@ -109,11 +171,11 @@ function App() {
 		const calculatedExpectedTransfers = calculateExpectedTransfers(
 			totalRevenueShare,
 			revenueAmount,
-			desiredFeePercentage,
+			desiredFeePercentageFromConfig,
 			revenueShareFrequency,
 		);
 		setExpectedTransfers(calculatedExpectedTransfers);
-	}, [revenueShareFrequency, totalRevenueShare, revenueAmount, desiredFeePercentage]);
+	}, [revenueShareFrequency, totalRevenueShare, revenueAmount, desiredFeePercentageFromConfig]);
 
 	// Calculate expected completion date
 	const currentDate = new Date();
@@ -161,7 +223,7 @@ function App() {
 								<div className="flex items-center justify-between">
 									<dt className="text-gray-600">Fees</dt>
 									<dd>
-										${feesData.percentage.toFixed(0)}% ${feesData.fees.toFixed(2)}
+										{feesData.percentage.toFixed(0)}% ${feesData.fees.toFixed(2)}
 									</dd>
 								</div>
 
@@ -217,8 +279,11 @@ function App() {
 										</label>
 										<div className="mt-1">
 											<RangeSlider
-												min={50000}
-												max={83000}
+												min={fundingAmountMin}
+												max={fundingAmountMax}
+												step={
+													(revenuePercentageMaxFromConfig - revenuePercentageMinFromConfig) * 100
+												}
 												initialValue={fundingAmount}
 												value={fundingAmount}
 												onChange={handleSliderChange}
@@ -280,6 +345,20 @@ function App() {
 								<FundUsesList fundUseOptions={fundUseOptions} />
 							</>
 						</div>
+						<section className="mt-10">
+							<div className="flex justify-between">
+								<button
+									className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg"
+									onClick={() => {}}>
+									Previous Page
+								</button>
+								<button
+									className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg"
+									onClick={() => {}}>
+									Next Page
+								</button>
+							</div>
+						</section>
 					</form>
 				</main>
 			</div>
