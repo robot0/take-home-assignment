@@ -38,18 +38,6 @@ function App() {
 		)
 		.flat();
 
-	// Funding Amount (Min/Max)
-	const fundingAmountMin =
-		config.find((item) => item.name === "funding_amount_min")?.value || 25000;
-	const fundingAmountMax =
-		config.find((item) => item.name === "funding_amount_max")?.value || 750000;
-
-	// Revenue Amount and Funding Amount
-	const defaultFundingAmount =
-		config.find((item) => item.name === "funding_amount")?.value || 60000;
-	const defaultRevenueAmount =
-		config.find((item) => item.name === "revenue_amount")?.value || 250000;
-
 	// Revenue Shared Frequency Logic
 	const revenueSharedFrequencyFromConfig =
 		config.find((item) => item.name === "revenue_shared_frequency")?.value || "monthly";
@@ -90,9 +78,29 @@ function App() {
 		setSelectedDelayOption(selectedValue);
 	};
 
-	// Funding Amount Logic
+	// Funding Amount (Min/Max)
+	const fundingAmountMin = config.find((item) => item.name === "funding_amount_min")?.value;
+	const fundingAmountMax = config.find((item) => item.name === "funding_amount_max")?.value;
+
+	// Revenue Amount and Funding Amount
+	const defaultRevenueAmount =
+		config.find((item) => item.name === "revenue_amount")?.value || 250000;
+
+	const defaultFundingAmount = () => {
+		const fundingAmountConfig = config.find((item) => item.name === "funding_amount")?.value;
+		if (fundingAmountConfig) {
+			const dividedAmount = parseFloat(fundingAmountConfig.split("/")[1]);
+			return defaultRevenueAmount / dividedAmount;
+		}
+		return 60000;
+	};
+
+	const revenueAmountConfig = config.find((item) => item.name === "revenue_amount");
+	const revenueAmountLabel = revenueAmountConfig?.label || "What is your annual business revenue?";
+	const revenueAmountPlaceholder = revenueAmountConfig?.placeholder || "$250,000";
+
 	const [revenueAmount, setRevenueAmount] = useState(defaultRevenueAmount);
-	const [fundingAmount, setFundingAmount] = useState(defaultFundingAmount);
+	const [fundingAmount, setFundingAmount] = useState(defaultFundingAmount());
 
 	// InputBox logic
 	const handleRevenueAmount = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,15 +137,15 @@ function App() {
 
 	// Range Slider logic
 	const handleSliderChange = (value: number) => {
-		setFundingAmount(value);
 		const newPercentage = value / revenueAmount;
 		if (
-			newPercentage >= revenuePercentageMinFromConfig &&
-			newPercentage <= revenuePercentageMaxFromConfig
+			newPercentage >= parseFloat(revenuePercentageMinFromConfig) &&
+			newPercentage <= parseFloat(revenuePercentageMaxFromConfig)
 		) {
 			setRevenuePercentage(newPercentage);
 		}
-		console.log(desiredFeePercentageFromConfig);
+		setFundingAmount(value);
+		setRevenuePercentage(newPercentage);
 	};
 
 	// Total Revenue Share Logic
@@ -165,14 +173,17 @@ function App() {
 
 	const revenueShareFrequency = weeklyCheckBoxValue ? "weekly" : "monthly";
 
+	// Expected Transfers Logic
 	const [expectedTransfers, setExpectedTransfers] = useState(0);
 
 	useEffect(() => {
-		const calculatedExpectedTransfers = calculateExpectedTransfers(
-			totalRevenueShare,
-			revenueAmount,
-			desiredFeePercentageFromConfig,
-			revenueShareFrequency,
+		const calculatedExpectedTransfers = Math.ceil(
+			calculateExpectedTransfers(
+				totalRevenueShare,
+				revenueAmount,
+				desiredFeePercentageFromConfig,
+				revenueShareFrequency,
+			),
 		);
 		setExpectedTransfers(calculatedExpectedTransfers);
 	}, [revenueShareFrequency, totalRevenueShare, revenueAmount, desiredFeePercentageFromConfig]);
@@ -212,24 +223,24 @@ function App() {
 							<dl className="hidden space-y-6 border-t border-gray-200 pt-6 text-sm font-medium text-gray-900 lg:block">
 								<div className="flex items-center justify-between">
 									<dt className="text-gray-600">Annual Business Revenue</dt>
-									<dd>{revenueAmount}</dd>
+									<dd>${revenueAmount}</dd>
 								</div>
 
 								<div className="flex items-center justify-between">
 									<dt className="text-gray-600">Funding Amount</dt>
-									<dd>{fundingAmount}</dd>
+									<dd>${fundingAmount}</dd>
 								</div>
 
 								<div className="flex items-center justify-between">
 									<dt className="text-gray-600">Fees</dt>
 									<dd>
-										{feesData.percentage.toFixed(0)}% ${feesData.fees.toFixed(2)}
+										({feesData.percentage.toFixed(0)}% ) ${feesData.fees.toFixed(2)}
 									</dd>
 								</div>
 
 								<div className="flex items-center justify-between border-t border-gray-200 pt-4">
 									<dt className="text-base text-gray-600">Total Revenue Share</dt>
-									<dd className="text-base">{totalRevenueShare}</dd>
+									<dd className="text-base">${totalRevenueShare}</dd>
 								</div>
 								<div className="flex items-center justify-between pt-1">
 									<dt className="text-base text-gray-600">Expected transfers</dt>
@@ -259,11 +270,11 @@ function App() {
 									<div className="mt-1">
 										<InputBox
 											type="number"
-											label="What is your annual business revenue?"
+											label={revenueAmountLabel}
 											id="name"
 											value={revenueAmount}
 											onChange={handleRevenueAmount}
-											placeholder="$250,000"
+											placeholder={revenueAmountPlaceholder}
 										/>
 									</div>
 								</div>
@@ -281,9 +292,7 @@ function App() {
 											<RangeSlider
 												min={fundingAmountMin}
 												max={fundingAmountMax}
-												step={
-													(revenuePercentageMaxFromConfig - revenuePercentageMinFromConfig) * 100
-												}
+												step={1}
 												initialValue={fundingAmount}
 												value={fundingAmount}
 												onChange={handleSliderChange}
