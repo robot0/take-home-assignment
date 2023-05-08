@@ -104,7 +104,7 @@ function App() {
 
 	// InputBox logic
 	const handleRevenueAmount = (e: React.ChangeEvent<HTMLInputElement>) => {
-		setRevenueAmount(parseFloat(e.target.value));
+		setRevenueAmount(Number(e.target.value));
 	};
 
 	// Revenue Percentage logic
@@ -133,7 +133,7 @@ function App() {
 
 	// Add a new state variable for revenue percentage
 	// eslint-disable-next-line
-	const [revenuePercentage, setRevenuePercentage] = useState(
+	const [revenuePercentage, setRevenuePercentage] = useState(() =>
 		calculatePercentage(revenueAmount, fundingAmount),
 	);
 
@@ -307,7 +307,7 @@ function App() {
 											<RangeSlider
 												min={fundingAmountMin}
 												max={fundingAmountMax}
-												step={1}
+												step={5000}
 												initialValue={fundingAmount}
 												value={fundingAmount}
 												onChange={handleSliderChange}

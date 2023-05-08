@@ -17,37 +17,37 @@ interface FundUseListProps {
 const FundUsesList: React.FC<FundUseListProps> = ({ fundUseOptions }) => {
 	const [fundUses, setFundUses] = useState<FundUse[]>(() => {
 		const storedFundUses = localStorage.getItem("fundUses");
-		return storedFundUses
-			? JSON.parse(storedFundUses)
-			: [
-					{
-						id: Date.now(),
-						fundUseOption: fundUseOptions[0]?.id || 0,
-						description: "",
-						amount: 0,
-					},
-			  ];
+		return storedFundUses ? JSON.parse(storedFundUses) : [];
+	});
+
+	const [newFundUse, setNewFundUse] = useState<FundUse>({
+		id: Date.now(),
+		fundUseOption: fundUseOptions[0]?.id || 0,
+		description: "",
+		amount: 0,
 	});
 
 	const addRow = () => {
-		// Call the saveList function to save the list before adding a new row
+		setFundUses((prevState) => [...prevState, newFundUse]);
 		saveList();
 
-		setFundUses((prevState) => [
-			...prevState,
-			{
-				id: Date.now(),
-				fundUseOption: fundUseOptions[0].id,
-				description: "",
-				amount: 0,
-			},
-		]);
+		setNewFundUse({
+			id: Date.now(),
+			fundUseOption: fundUseOptions[0]?.id || 0,
+			description: "",
+			amount: 0,
+		});
+	};
+
+	const updateNewFundUse = (field: keyof FundUse, value: any) => {
+		setNewFundUse((prevState) => ({ ...prevState, [field]: value }));
 	};
 
 	const updateRow = (id: number, field: keyof FundUse, value: any) => {
 		setFundUses((prevState) =>
 			prevState.map((fundUse) => (fundUse.id === id ? { ...fundUse, [field]: value } : fundUse)),
 		);
+		saveList();
 	};
 
 	const deleteRow = (id: number) => {
@@ -56,6 +56,7 @@ const FundUsesList: React.FC<FundUseListProps> = ({ fundUseOptions }) => {
 			localStorage.setItem("fundUses", JSON.stringify(updatedFundUses));
 			return updatedFundUses;
 		});
+		saveList();
 	};
 
 	const saveList = () => {
@@ -66,9 +67,32 @@ const FundUsesList: React.FC<FundUseListProps> = ({ fundUseOptions }) => {
 	return (
 		<section className="mt-4">
 			<h2>What will you use the funds for?</h2>
-			<div className="relative">
+			<ul className="relative">
+				<li className="mt-6 grid grid-cols-4 gap-y-6 gap-x-4 sm:grid-cols-4">
+					<ComboBoxComponent
+						data={fundUseOptions}
+						label=""
+						onChange={(selectedValue) => updateNewFundUse("fundUseOption", selectedValue?.id)}
+					/>
+					<InputBox
+						type="text"
+						label=""
+						id="description"
+						value={newFundUse.description}
+						onChange={(e) => updateNewFundUse("description", e.target.value)}
+						placeholder="Description"
+					/>
+					<InputBox
+						type="number"
+						label=""
+						id="amount"
+						value={newFundUse.amount}
+						onChange={(e) => updateNewFundUse("amount", parseFloat(e.target.value))}
+						placeholder="Amount"
+					/>
+				</li>
 				{fundUses.map((fundUse, index) => (
-					<div className="mt-6 grid grid-cols-4 gap-y-6 gap-x-4 sm:grid-cols-4" key={fundUse.id}>
+					<li className="mt-6 grid grid-cols-4 gap-y-6 gap-x-4 sm:grid-cols-4" key={fundUse.id}>
 						<ComboBoxComponent
 							data={fundUseOptions}
 							label=""
@@ -90,14 +114,11 @@ const FundUsesList: React.FC<FundUseListProps> = ({ fundUseOptions }) => {
 							onChange={(e) => updateRow(fundUse.id, "amount", parseFloat(e.target.value))}
 							placeholder="Amount"
 						/>
-						{index === 0 ? (
-							<Button label="Add" type="add" onClick={addRow}></Button>
-						) : (
-							<Button label="Delete" type="add" onClick={() => deleteRow(fundUse.id)}></Button>
-						)}
-					</div>
+						<Button label="Delete" type="delete" onClick={() => deleteRow(fundUse.id)}></Button>
+					</li>
 				))}
-			</div>
+			</ul>
+			<Button label="Add" type="add" onClick={addRow}></Button>
 		</section>
 	);
 };
