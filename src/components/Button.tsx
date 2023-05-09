@@ -25,7 +25,7 @@ const getSizeClasses = (size: "small" | "medium" | "large"): string => {
 const getModeClasses = (isPrimary: boolean): string =>
 	isPrimary
 		? "text-white bg-blue-400 dark:bg-blue-700"
-		: "text-white bg-red-600 dark:text-white dark:border-white";
+		: "text-white bg-red-600 dark:bg-red-700 dark:text-white dark:border-white";
 
 const BASE_BUTTON_CLASSES = "px-4 py-2.5 text-white dark:bg-blue-700";
 

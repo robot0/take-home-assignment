@@ -87,10 +87,6 @@ function App() {
 		setSelectedDelayOption(selectedValue.id);
 	};
 
-	// Funding Amount (Min/Max)
-	const fundingAmountMin = config.find((item) => item.name === "funding_amount_min")?.value;
-	const fundingAmountMax = config.find((item) => item.name === "funding_amount_max")?.value;
-
 	// Revenue Amount and Funding Amount
 	const defaultRevenueAmount =
 		config.find((item) => item.name === "revenue_amount")?.value || 250000;
@@ -110,6 +106,11 @@ function App() {
 
 	const [revenueAmount, setRevenueAmount] = useState(defaultRevenueAmount);
 	const [fundingAmount, setFundingAmount] = useState(defaultFundingAmount());
+
+	// Funding Amount (Min/Max)
+	const fundingAmountMin = config.find((item) => item.name === "funding_amount_min")?.value;
+	const fundingAmountMax = config.find((item) => item.name === "funding_amount_max")?.value;
+	const newFundingAmountMax = Math.min(fundingAmountMax, revenueAmount / 3);
 
 	// InputBox logic
 	const handleRevenueAmount = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,6 +169,9 @@ function App() {
 			setRevenuePercentage(newPercentage);
 		}
 		setFundingAmount(value);
+		// console.log(fundingAmountMax);
+		// console.log(newFundingAmountMax);
+		console.log(expectedTransferTime);
 	};
 
 	// Total Revenue Share Logic
@@ -214,9 +218,11 @@ function App() {
 		setExpectedTransfers(calculatedExpectedTransfers);
 	}, [revenueShareFrequency, totalRevenueShare, revenueAmount, revenuePercentage]);
 
-	// Calculate expected completion date
+	// Calculate expected completion date logic
 	const currentDate = new Date();
-	const expectedTransferTime = Math.ceil(expectedTransfers);
+	const expectedTransferTime =
+		(totalRevenueShare * 365) / (revenueAmount * (revenuePercentage / 100));
+
 	const selectedDelayOptionObject = delayOptions.find(
 		(option) => option.id === selectedDelayOption,
 	);
@@ -329,7 +335,7 @@ function App() {
 										<div className="mt-1">
 											<RangeSlider
 												min={parseFloat(fundingAmountMin)}
-												max={parseFloat(fundingAmountMax)}
+												max={newFundingAmountMax}
 												step={5000}
 												initialValue={fundingAmount}
 												value={fundingAmount}
