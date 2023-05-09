@@ -27,7 +27,7 @@ const InputBox: React.FC<InputBoxProps> = ({
 }) => {
 	return (
 		<div className="flex flex-col">
-			<label htmlFor={id} className="text-sm font-medium text-gray-600 mb-1">
+			<label htmlFor={id} className="text-sm font-medium text-gray-600 dark:text-white mb-1">
 				{label}
 			</label>
 			<input

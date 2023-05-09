@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 import { Combobox } from "@headlessui/react";
 
@@ -10,6 +10,7 @@ interface Option {
 interface ComboBoxProps {
 	data: Option[];
 	label: string;
+	value?: Option | null;
 	onChange: (selectedOption: Option | null) => void;
 }
 
@@ -17,14 +18,22 @@ function classNames(...classes: (string | boolean | undefined)[]): string {
 	return classes.filter(Boolean).join(" ");
 }
 
-export default function ComboBoxComponent({ data, label, onChange }: ComboBoxProps) {
+export default function ComboBoxComponent({ data, label, onChange, value }: ComboBoxProps) {
 	const [query, setQuery] = useState("");
-	const [selectedOption, setSelectedOption] = useState<Option | null>(null);
+	const [selectedOption, setSelectedOption] = useState<Option | null>(value || null);
 
 	const handleChange = (option: Option | null) => {
 		setSelectedOption(option);
 		onChange(option);
 	};
+
+	// Handle the external value change
+	useEffect(() => {
+		if (value !== undefined) {
+			setSelectedOption(value);
+		}
+	}, [value]);
+
 	const filteredOptions =
 		query === ""
 			? data

@@ -33,7 +33,7 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
 				className="w-full h-1 bg-gray-200 cursor-pointer focus:outline-none focus:ring-0"
 			/>
 			<span className="absolute ml-2 text-blue-500">${value.toLocaleString()}</span>
-			<div className="flex justify-between text-sm font-medium text-gray-600">
+			<div className="flex justify-between text-sm font-medium text-gray-600 dark:text-white">
 				<span>{min}</span>
 				<span>{max}</span>
 			</div>

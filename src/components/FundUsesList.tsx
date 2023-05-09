@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ComboBoxComponent from "./ComboBox";
 import InputBox from "./InputBox";
-import Button from "./Button";
+import { Button } from "./Button";
 
 interface FundUse {
 	id: number;
@@ -56,7 +56,6 @@ const FundUsesList: React.FC<FundUseListProps> = ({ fundUseOptions }) => {
 			localStorage.setItem("fundUses", JSON.stringify(updatedFundUses));
 			return updatedFundUses;
 		});
-		saveList();
 	};
 
 	const saveList = () => {
@@ -67,58 +66,73 @@ const FundUsesList: React.FC<FundUseListProps> = ({ fundUseOptions }) => {
 	return (
 		<section className="mt-4">
 			<h2>What will you use the funds for?</h2>
-			<ul className="relative">
-				<li className="mt-6 grid grid-cols-4 gap-y-6 gap-x-4 sm:grid-cols-4">
-					<ComboBoxComponent
-						data={fundUseOptions}
-						label=""
-						onChange={(selectedValue) => updateNewFundUse("fundUseOption", selectedValue?.id)}
-					/>
-					<InputBox
-						type="text"
-						label=""
-						id="description"
-						value={newFundUse.description}
-						onChange={(e) => updateNewFundUse("description", e.target.value)}
-						placeholder="Description"
-					/>
-					<InputBox
-						type="number"
-						label=""
-						id="amount"
-						value={newFundUse.amount}
-						onChange={(e) => updateNewFundUse("amount", parseFloat(e.target.value))}
-						placeholder="Amount"
-					/>
-				</li>
-				{fundUses.map((fundUse, index) => (
-					<li className="mt-6 grid grid-cols-4 gap-y-6 gap-x-4 sm:grid-cols-4" key={fundUse.id}>
+			<div className="relative">
+				<ul className="relative ">
+					<li className="mt-6 grid grid-cols-4 gap-y-6 gap-x-4 sm:grid-cols-4">
 						<ComboBoxComponent
 							data={fundUseOptions}
+							value={fundUseOptions.find((option) => option.id === newFundUse.fundUseOption)}
 							label=""
-							onChange={(selectedValue) => updateRow(fundUse.id, "fundUseOption", selectedValue)}
+							onChange={(selectedValue) => updateNewFundUse("fundUseOption", selectedValue?.id)}
 						/>
 						<InputBox
 							type="text"
 							label=""
 							id="description"
-							value={fundUse.description}
-							onChange={(e) => updateRow(fundUse.id, "description", e.target.value)}
+							value={newFundUse.description}
+							onChange={(e) => updateNewFundUse("description", e.target.value)}
 							placeholder="Description"
 						/>
 						<InputBox
 							type="number"
 							label=""
 							id="amount"
-							value={fundUse.amount}
-							onChange={(e) => updateRow(fundUse.id, "amount", parseFloat(e.target.value))}
+							value={newFundUse.amount}
+							onChange={(e) => updateNewFundUse("amount", parseFloat(e.target.value))}
 							placeholder="Amount"
 						/>
-						<Button label="Delete" type="delete" onClick={() => deleteRow(fundUse.id)}></Button>
 					</li>
-				))}
-			</ul>
-			<Button label="Add" type="add" onClick={addRow}></Button>
+					{fundUses.map((fundUse, index) => (
+						<li className="mt-6 grid grid-cols-4 gap-y-6 gap-x-4 sm:grid-cols-4" key={fundUse.id}>
+							<ComboBoxComponent
+								data={fundUseOptions}
+								value={fundUseOptions.find((option) => option.id === fundUse.fundUseOption)}
+								label=""
+								onChange={(selectedValue) => updateRow(fundUse.id, "fundUseOption", selectedValue)}
+							/>
+							<InputBox
+								type="text"
+								label=""
+								id="description"
+								value={fundUse.description}
+								onChange={(e) => updateRow(fundUse.id, "description", e.target.value)}
+								placeholder="Description"
+							/>
+							<InputBox
+								type="number"
+								label=""
+								id="amount"
+								value={fundUse.amount}
+								onChange={(e) => updateRow(fundUse.id, "amount", parseFloat(e.target.value))}
+								placeholder="Amount"
+							/>
+							<Button
+								className=""
+								size="small"
+								label="Delete"
+								type="button"
+								onClick={() => deleteRow(fundUse.id)}></Button>
+						</li>
+					))}
+				</ul>
+				<Button
+					className="absolute top-0 right-0"
+					primary
+					size="small"
+					label="Add"
+					type="button"
+					onClick={addRow}></Button>
+			</div>
 		</section>
 	);
 };

@@ -1,25 +1,57 @@
-import React from "react";
+import React, { useMemo } from "react";
 
-interface ButtonProps {
+type ButtonProps = {
+	primary?: boolean;
+	size?: "small" | "medium" | "large";
 	label: string;
-	type: "add" | "delete";
+	className: string;
 	onClick: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
-}
+} & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
-const Button: React.FC<ButtonProps> = ({ label, type, onClick }) => {
-	const buttonStyle =
-		type === "add" ? "bg-indigo-600 hover:bg-indigo-700" : "bg-red-600 hover:bg-red-700";
+const getSizeClasses = (size: "small" | "medium" | "large"): string => {
+	switch (size) {
+		case "small": {
+			return "px-4 py-2.5";
+		}
+		case "large": {
+			return "px-6 py-3";
+		}
+		default: {
+			return "px-5 py-2.5";
+		}
+	}
+};
+
+const getModeClasses = (isPrimary: boolean): string =>
+	isPrimary
+		? "text-white bg-blue-400 dark:bg-blue-700"
+		: "text-white bg-red-600 dark:text-white dark:border-white";
+
+const BASE_BUTTON_CLASSES = "px-4 py-2.5 text-white dark:bg-blue-700";
+
+export const Button: React.FC<ButtonProps> = ({
+	primary = false,
+	size = "medium",
+	className = "",
+	type = "button",
+	label,
+	onClick,
+	...props
+}) => {
+	const computedClasses = useMemo(() => {
+		const modeClass = getModeClasses(primary);
+		const sizeClass = getSizeClasses(size as "small" | "medium" | "large");
+
+		return [modeClass, sizeClass].join(" ");
+	}, [primary, size]);
 
 	return (
 		<button
-			onClick={(event) => {
-				event.preventDefault();
-				onClick(event);
-			}}
-			className={`text-white font-semibold py-2 px-4 rounded ${buttonStyle}`}>
+			type={type}
+			className={`${BASE_BUTTON_CLASSES} ${computedClasses} ${className}`}
+			onClick={onClick}
+			{...props}>
 			{label}
 		</button>
 	);
 };
-
-export default Button;

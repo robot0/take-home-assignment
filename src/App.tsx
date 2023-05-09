@@ -1,13 +1,18 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useDarkMode } from "./hooks/useDarkMode";
 import InputBox from "./components/InputBox";
 import RangeSlider from "./components/RangeSlider";
 import ComboBoxComponent from "./components/ComboBox";
 import CheckBox from "./components/CheckBox";
 import PercentageStat from "./components/PercentageStat";
 import FundUsesList from "./components/FundUsesList";
+import Header from "./components/Header";
 
 function App() {
+	// Dark mode logic
+	const { isDarkMode, toggleDarkMode } = useDarkMode();
+
 	// Config state variable
 	const [config, setConfig] = useState<any[]>([]);
 
@@ -72,10 +77,14 @@ function App() {
 	const desiredRepaymentDelayFromConfig =
 		config.find((item) => item.name === "desired_repayment_delay")?.value || delayOptions[0]?.id;
 
-	const [selectedDelayOption, setSelectedDelayOption] = useState(desiredRepaymentDelayFromConfig);
+	const defaultDelayOption = delayOptions.find(
+		(option) => option.name === desiredRepaymentDelayFromConfig,
+	);
+
+	const [selectedDelayOption, setSelectedDelayOption] = useState(defaultDelayOption?.id);
 
 	const handleDelayChange = (selectedValue: any) => {
-		setSelectedDelayOption(selectedValue);
+		setSelectedDelayOption(selectedValue.id);
 	};
 
 	// Funding Amount (Min/Max)
@@ -108,9 +117,6 @@ function App() {
 	};
 
 	// Revenue Percentage logic
-	const revenuePercentageFromConfig = config.find(
-		(item) => item.name === "revenue_percentage",
-	)?.value;
 	const revenuePercentageMinFromConfig = config.find(
 		(item) => item.name === "revenue_percentage_min",
 	)?.value;
@@ -120,19 +126,21 @@ function App() {
 
 	// Calculating the Revenue Percentage Logic
 	const calculatePercentage = (revenueAmount: number, fundingAmount: number) => {
-		const formula = revenuePercentageFromConfig;
+		const percentage = (0.156 / 6.2055 / revenueAmount) * (fundingAmount * 10) * 100;
 
-		if (!formula) {
-			return 0;
+		const revenuePercentageMin = parseFloat(revenuePercentageMinFromConfig);
+		const revenuePercentageMax = parseFloat(revenuePercentageMaxFromConfig);
+
+		if (percentage < revenuePercentageMin) {
+			return revenuePercentageMin;
+		} else if (percentage > revenuePercentageMax) {
+			return revenuePercentageMax;
+		} else {
+			return percentage;
 		}
-
-		// eslint-disable-next-line
-		const percentage = new Function("revenue_amount", "funding_amount", `return ${formula}`);
-		return percentage(revenueAmount, fundingAmount);
 	};
 
 	// Add a new state variable for revenue percentage
-	// eslint-disable-next-line
 	const [revenuePercentage, setRevenuePercentage] = useState(() =>
 		calculatePercentage(revenueAmount, fundingAmount),
 	);
@@ -152,7 +160,7 @@ function App() {
 
 	// Range Slider logic
 	const handleSliderChange = (value: number) => {
-		const newPercentage = value / revenueAmount;
+		const newPercentage = calculatePercentage(revenueAmount, value);
 		if (
 			newPercentage >= parseFloat(revenuePercentageMinFromConfig) &&
 			newPercentage <= parseFloat(revenuePercentageMaxFromConfig)
@@ -160,7 +168,6 @@ function App() {
 			setRevenuePercentage(newPercentage);
 		}
 		setFundingAmount(value);
-		setRevenuePercentage(newPercentage);
 	};
 
 	// Total Revenue Share Logic
@@ -170,100 +177,114 @@ function App() {
 
 	const totalRevenueShare = calculateTotalRevenueShare(fundingAmount, feesData.fees);
 
-	// Expected Transfers Logic
-	const calculateExpectedTransfers = (
-		totalRevenueShare: number,
-		revenueAmount: number,
-		desiredFeePercentage: number,
-		revenueShareFrequency: string,
-	) => {
-		if (revenueShareFrequency === "weekly") {
-			return (totalRevenueShare * 52) / (revenueAmount * desiredFeePercentage);
-		} else if (revenueShareFrequency === "monthly") {
-			return (totalRevenueShare * 12) / (revenueAmount * desiredFeePercentage);
-		} else {
-			throw new Error("Invalid revenueShareFrequency value");
-		}
-	};
-
+	// Revenue share frequency logic
 	const revenueShareFrequency = weeklyCheckBoxValue ? "weekly" : "monthly";
 
 	// Expected Transfers Logic
 	const [expectedTransfers, setExpectedTransfers] = useState(0);
+
+	const calculateExpectedTransfers = (
+		totalRevenueShare: number,
+		revenueAmount: number,
+		revenuePercentage: number,
+		revenueShareFrequency: string,
+	) => {
+		if (revenueShareFrequency === "weekly") {
+			const weeklyExpectedTransfers =
+				(totalRevenueShare * 52) / (revenueAmount * (revenuePercentage / 100));
+			return weeklyExpectedTransfers;
+		} else if (revenueShareFrequency === "monthly") {
+			const monthlyExpectedTransfers =
+				(totalRevenueShare * 12) / (revenueAmount * (revenuePercentage / 100));
+			return monthlyExpectedTransfers;
+		} else {
+			throw new Error("Invalid Revenue Share Frequency value");
+		}
+	};
 
 	useEffect(() => {
 		const calculatedExpectedTransfers = Math.ceil(
 			calculateExpectedTransfers(
 				totalRevenueShare,
 				revenueAmount,
-				desiredFeePercentageFromConfig,
+				revenuePercentage,
 				revenueShareFrequency,
 			),
 		);
 		setExpectedTransfers(calculatedExpectedTransfers);
-	}, [revenueShareFrequency, totalRevenueShare, revenueAmount, desiredFeePercentageFromConfig]);
+	}, [revenueShareFrequency, totalRevenueShare, revenueAmount, revenuePercentage]);
 
 	// Calculate expected completion date
 	const currentDate = new Date();
-	const expectedTransferTime = weeklyCheckBoxValue ? expectedTransfers * 7 : expectedTransfers * 30;
-	const desiredRepaymentDelay =
-		selectedDelayOption === 1 ? 30 : selectedDelayOption === 2 ? 60 : 90;
+	const expectedTransferTime = Math.ceil(expectedTransfers);
+	const selectedDelayOptionObject = delayOptions.find(
+		(option) => option.id === selectedDelayOption,
+	);
+	const desiredRepaymentDelay = selectedDelayOptionObject
+		? parseInt(selectedDelayOptionObject.name)
+		: 30;
 	const expectedCompletionDate = new Date(
 		currentDate.getTime() + (expectedTransferTime + desiredRepaymentDelay) * 24 * 60 * 60 * 1000,
 	);
 
 	return (
 		<div className="App">
-			<div className="bg-white">
+			<div className="relative bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
 				{/* Background color split screen for large screens */}
+				<Header isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
 				<div
-					className="fixed top-0 left-0 hidden h-full w-1/2 bg-white lg:block"
+					className="fixed left-0 hidden h-full w-1/2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white lg:block"
 					aria-hidden="true"
 				/>
 				<div
-					className="fixed top-0 right-0 hidden h-full w-1/2 bg-gray-50 lg:block"
+					className="fixed right-0 hidden h-full w-1/2 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white lg:block"
 					aria-hidden="true"
 				/>
 
 				<main className="relative mx-auto grid max-w-7xl grid-cols-1 gap-x-16 lg:grid-cols-2 lg:px-8 xl:gap-x-48">
+					<Header isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
 					<h1 className="sr-only">Results</h1>
 
 					<section
 						aria-labelledby="results-heading"
-						className="bg-gray-50 px-4 pt-16 pb-10 sm:px-6 lg:col-start-2 lg:row-start-1 lg:bg-transparent lg:px-0 lg:pb-16">
+						className="bg-gray-50 px-4 pt-24 pb-10 mt-10 sm:px-6 lg:col-start-2 lg:row-start-1 lg:bg-transparent lg:px-0 lg:pb-16">
 						<div className="mx-auto max-w-lg lg:max-w-none">
-							<h2 id="summary-heading" className="text-lg font-medium text-gray-900">
+							<h2
+								id="summary-heading"
+								className="text-lg font-medium text-gray-900 dark:text-white">
 								Results
 							</h2>
 							<dl className="hidden space-y-6 border-t border-gray-200 pt-6 text-sm font-medium text-gray-900 lg:block">
 								<div className="flex items-center justify-between">
-									<dt className="text-gray-600">Annual Business Revenue</dt>
-									<dd>${revenueAmount}</dd>
+									<dt className="text-gray-600 dark:text-white">Annual Business Revenue</dt>
+									<dd className="text-gray-600 dark:text-white">${revenueAmount}</dd>
 								</div>
 
 								<div className="flex items-center justify-between">
-									<dt className="text-gray-600">Funding Amount</dt>
-									<dd>${fundingAmount}</dd>
+									<dt className="text-gray-600 dark:text-white">Funding Amount</dt>
+									<dd className="text-gray-600 dark:text-white">${fundingAmount}</dd>
 								</div>
 
 								<div className="flex items-center justify-between">
-									<dt className="text-gray-600">Fees</dt>
-									<dd>
+									<dt className="text-gray-600 dark:text-white">Fees</dt>
+									<dd className="text-gray-600 dark:text-white">
 										({feesData.percentage.toFixed(0)}% ) ${feesData.fees.toFixed(2)}
 									</dd>
 								</div>
 
 								<div className="flex items-center justify-between border-t border-gray-200 pt-4">
-									<dt className="text-base text-gray-600">Total Revenue Share</dt>
-									<dd className="text-base">${totalRevenueShare}</dd>
+									<dt className="text-base text-gray-600 dark:text-white">Total Revenue Share</dt>
+									<dd className="text-base dark:text-white">${totalRevenueShare}</dd>
 								</div>
 								<div className="flex items-center justify-between pt-1">
-									<dt className="text-base text-gray-600">Expected transfers</dt>
-									<dd className="text-base">{expectedTransfers}</dd>
+									<dt className="text-base text-gray-600 dark:text-white">Expected transfers</dt>
+									<dd className="dark:text-white text-base">{expectedTransfers}</dd>
 								</div>
 								<div className="flex items-center justify-between pt-1">
-									<dt className="text-base text-gray-600">Expected completion date</dt>
-									<dd className="text-base">
+									<dt className="text-base text-gray-600 dark:text-white">
+										Expected completion date
+									</dt>
+									<dd className=" dark:text-white text-base">
 										{expectedCompletionDate.toLocaleDateString("en-US", {
 											month: "long",
 											day: "numeric",
@@ -274,10 +295,12 @@ function App() {
 							</dl>
 						</div>
 					</section>
-					<form className="px-4 pt-16 pb-36 sm:px-6 lg:col-start-1 lg:row-start-1 lg:px-0 lg:pb-16">
+					<form className="px-4 pt-24 pb-36 sm:px-6 lg:col-start-1 lg:row-start-1 lg:px-0 lg:pb-16">
 						<div className="mx-auto max-w-lg lg:max-w-none">
 							<section aria-labelledby="contact-info-heading">
-								<h2 id="contact-info-heading" className="text-lg font-medium text-gray-900">
+								<h2
+									id="financing-options"
+									className="text-lg font-medium text-gray-900 dark:text-white">
 									Financing Options
 								</h2>
 
@@ -300,13 +323,13 @@ function App() {
 									<div className="col-span-3 sm:col-span-4">
 										<label
 											htmlFor="desired-loan-amount"
-											className="block text-sm font-medium text-gray-700">
+											className="block text-sm font-medium text-gray-700 dark:text-white">
 											What is your desired loan amount?
 										</label>
 										<div className="mt-1">
 											<RangeSlider
-												min={fundingAmountMin}
-												max={fundingAmountMax}
+												min={parseFloat(fundingAmountMin)}
+												max={parseFloat(fundingAmountMax)}
 												step={5000}
 												initialValue={fundingAmount}
 												value={fundingAmount}
@@ -319,20 +342,18 @@ function App() {
 								<div className="mt-6 flex flex-row gap-2">
 									<label
 										htmlFor="revenue-share-percentage"
-										className="mt-1 block text-sm font-medium text-gray-700">
+										className="mt-1 block text-sm font-medium text-gray-700 dark:text-white">
 										Revenue Share Percentage:
 									</label>
 									<div className="mb-4">
-										<PercentageStat
-											percentage={calculatePercentage(revenueAmount, fundingAmount)}
-										/>
+										<PercentageStat percentage={revenuePercentage} />
 									</div>
 								</div>
 
 								<div className="mt-4 flex flex-row gap-4">
 									<label
 										htmlFor="revenue-shared-freq"
-										className="block text-sm font-medium text-gray-700">
+										className="block text-sm font-medium text-gray-700 dark:text-white">
 										Revenue Shared Frequency
 									</label>
 									<div className="mt-2">
@@ -353,14 +374,16 @@ function App() {
 
 								<div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-3">
 									<div className="sm:col-span-3">
-										<label htmlFor="address" className="block text-sm font-medium text-gray-700">
+										<label
+											htmlFor="address"
+											className="block text-sm font-medium text-gray-700 dark:text-white">
 											Desired Payment Delays
 										</label>
 										<div className="mt-1">
 											<ComboBoxComponent
 												data={delayOptions}
 												label=""
-												onChange={handleDelayChange}
+												onChange={(selectedValue) => handleDelayChange(selectedValue)}
 											/>
 										</div>
 									</div>
@@ -371,20 +394,6 @@ function App() {
 								<FundUsesList fundUseOptions={fundUseOptions} />
 							</>
 						</div>
-						<section className="mt-10">
-							<div className="flex justify-between">
-								<button
-									className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg"
-									onClick={() => {}}>
-									Previous Page
-								</button>
-								<button
-									className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg"
-									onClick={() => {}}>
-									Next Page
-								</button>
-							</div>
-						</section>
 					</form>
 				</main>
 			</div>
